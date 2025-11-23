@@ -5,12 +5,12 @@
 #include "LED.h"
 #include "Serial.h" 
 
-float Kp = 0.35f;           
-float Kd = 0.0f;           
-float Prev_Error = 0;       // 上一次误差
+float Kp = 0.5f;           // 稍微加大一点，防止低速带不动
+float Kd = 0.15f;           
+float Prev_Error = 0;         // 上一次误差
 
-int Base_Speed = 50;       
-uint8_t Run_Mode = 0;       // 0待机, 1视觉循迹
+int Base_Speed = 100;       
+uint8_t Run_Mode = 1;       // 0待机, 1视觉循迹
 
 int main(void)
 {
@@ -18,6 +18,15 @@ int main(void)
 	Key_Init();     
 	LED_Init();      
 	Serial_Init();  
+	
+	    // 轮子微转 (左轮转，右轮转)
+    makerobo_SetPWM(80, 80); 
+    Delay_ms(200);           // 转0.2秒
+    makerobo_SetPWM(0, 0);   // 停
+    Delay_ms(200);           // 停0.2秒
+    makerobo_SetPWM(80, 80);  // 反转
+    Delay_ms(200);
+    makerobo_SetPWM(0, 0);   // 彻底停下
 
 	LED1_ON();       
 	Delay_ms(1000);
