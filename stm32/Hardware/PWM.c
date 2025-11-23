@@ -10,7 +10,7 @@ void PWM_Init(void)
       RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
       //使能PWM输出GPIO时钟
       RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE); 
-                                                                          
+                                                                   
       GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;//定时器TIM4的PWM输出通道1,TIM4_CH1
       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;//复用推挽输出
       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -36,7 +36,7 @@ void PWM_Init(void)
       TIM_TimeBaseStructure.TIM_ClockDivision = 0;
       TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;//TIM向上计数模式
       TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure); //初始化TIM4
-     
+      
       //初始化TIM4_CH1的PWM模式
       TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;//??PWM??1
       TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;//??????
@@ -75,4 +75,3 @@ void PWM_Init(void)
 
       TIM_Cmd(TIM4, ENABLE);//使能定时器TIM4,准备工作 
 }
-

@@ -6,10 +6,10 @@ from ultralytics import YOLO
 # 注意画幅已经被强制
 def SendDataToStm32(x_offset, size,ser):
     x_offset = max(-320, min(320, int(x_offset)))
-    size = max(0, min(409600, int(size)))
-    stop_packet = struct.pack('<BBhIB', 0xB3, 0x01, x_offset, size, 0x5B)
+    size = max(0, min(307200, int(size)))
+    packet = struct.pack('<BBhIB', 0xB3, 0x01, x_offset, size, 0x5B)
     # 小端，永远显式地加上 < 或 >
-    ser.write(stop_packet)
+    ser.write(packet)
 
 def start_recognition():
     model = YOLO('yolo11n.pt')
@@ -37,7 +37,7 @@ def start_recognition():
         ser = serial.Serial("COM3", 115200, timeout=0.1)
         # 打开串口，linux需要修改/dev/ttyUSB0
     except serial.SerialException as e:
-        print("串口没有启用哦\n")
+        print("串口没有启用\n")
 
     while True:
 
@@ -112,7 +112,6 @@ def start_recognition():
             if (UnableToSendData==False):
                 try:
                     packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
-                    # 小端，永远显式地加上 < 或 >
                     ser.write(packet)
                 except Exception as e:
                     print("无法发送数据至单片机\n")
@@ -132,3 +131,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

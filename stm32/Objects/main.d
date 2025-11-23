@@ -1,7 +1,7 @@
 .\objects\main.o: User\main.c
 .\objects\main.o: .\Start\stm32f10x.h
 .\objects\main.o: .\Start\core_cm3.h
-.\objects\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\main.o: C:\Users\zheng\AppData\Local\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\main.o: .\Start\system_stm32f10x.h
 .\objects\main.o: .\User\stm32f10x_conf.h
 .\objects\main.o: .\Library\stm32f10x_adc.h
@@ -31,3 +31,5 @@
 .\objects\main.o: .\System\Delay.h
 .\objects\main.o: .\Hardware\robot.h
 .\objects\main.o: .\Hardware\Key.h
+.\objects\main.o: .\Hardware\LED.h
+.\objects\main.o: .\Hardware\Serial.h
