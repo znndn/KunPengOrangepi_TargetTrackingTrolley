@@ -35,13 +35,11 @@ def start_recognition():
 
     try:
         ser = serial.Serial("COM5", 115200, timeout=0.1)
-
-        # --- 新增部分: 防止串口连接时重置/挂起 STM32 ---
+        # 防止串口连接时重置/挂起 STM32
         ser.setRTS(False)
         ser.setDTR(False)
-        # -------------------------------------------
 
-        print("串口 COM5 连接成功！")
+        print("串口 COM5 连接成功")
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
 
