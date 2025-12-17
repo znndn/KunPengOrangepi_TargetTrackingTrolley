@@ -5,12 +5,12 @@
 #include "LED.h"
 #include "Serial.h" 
 
-float Kp = 0.5f;           // ÉÔÎ¢¼Ó´óÒ»µã£¬·ÀÖ¹µÍËÙ´ø²»¶¯
+float Kp = 0.5f;           // ç¨å¾®åŠ å¤§ä¸€ç‚¹ï¼Œé˜²æ­¢ä½Žé€Ÿå¸¦ä¸åŠ¨
 float Kd = 0.15f;           
-float Prev_Error = 0;         // ÉÏÒ»´ÎÎó²î
+float Prev_Error = 0;         // ä¸Šä¸€æ¬¡è¯¯å·®
 
 int Base_Speed = 100;       
-uint8_t Run_Mode = 1;       // 0´ý»ú, 1ÊÓ¾õÑ­¼£
+uint8_t Run_Mode = 1;       // 0å¾…æœº, 1è§†è§‰å¾ªè¿¹
 
 int main(void)
 {
@@ -19,14 +19,14 @@ int main(void)
 	LED_Init();      
 	Serial_Init();  
 	
-	    // ÂÖ×ÓÎ¢×ª (×óÂÖ×ª£¬ÓÒÂÖ×ª)
+	    // è½®å­å¾®è½¬ (å·¦è½®è½¬ï¼Œå³è½®è½¬)
     makerobo_SetPWM(80, 80); 
-    Delay_ms(200);           // ×ª0.2Ãë
-    makerobo_SetPWM(0, 0);   // Í£
-    Delay_ms(200);           // Í£0.2Ãë
-    makerobo_SetPWM(80, 80);  // ·´×ª
+    Delay_ms(200);           // è½¬0.2ç§’
+    makerobo_SetPWM(0, 0);   // åœ
+    Delay_ms(200);           // åœ0.2ç§’
+    makerobo_SetPWM(80, 80);  // åè½¬
     Delay_ms(200);
-    makerobo_SetPWM(0, 0);   // ³¹µ×Í£ÏÂ
+    makerobo_SetPWM(0, 0);   // å½»åº•åœä¸‹
 
 	LED1_ON();       
 	Delay_ms(1000);
@@ -60,6 +60,7 @@ int main(void)
 				if (Vision_Size > 85000)
 				{
 					makerobo_SetPWM(0, 0);
+					Prev_Error = 0;
 				}
 				else
 				{
