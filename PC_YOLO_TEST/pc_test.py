@@ -68,99 +68,105 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
         cv2.destroyAllWindows()
         return
 
-    while True:
+    try:
+        while True:
 
-        # 表示逐帧获取
-        ret, frame = cap.read()
-        if not ret:
-            print("无法读取帧")
-            break
+            # 表示逐帧获取
+            ret, frame = cap.read()
+            if not ret:
+                print("无法读取帧")
+                break
 
-        # 如果单纯需要确认颜色的方块，可以不用模型，OPENCV就行了
+            # 如果单纯需要确认颜色的方块，可以不用模型，OPENCV就行了
 
-        frame_width = frame.shape[1]
-        # 彩色 BGR 图像（OpenCV 默认）：frame.shape == (height, width, 3)，参数都是int
-        # 其中3是通道数，通常为3
-        frame_center_x = frame_width // 2
+            frame_width = frame.shape[1]
+            # 彩色 BGR 图像（OpenCV 默认）：frame.shape == (height, width, 3)，参数都是int
+            # 其中3是通道数，通常为3
+            frame_center_x = frame_width // 2
 
-        results = model(frame, classes=[67], verbose=False)
-        # https://docs.ultralytics.com/zh/modes/predict/
-        # 参考YOLO文档，对于每一帧直接调用模型，classes是识别的内容代号，verbose是否在控制台打印
+            results = model(frame, classes=[67], verbose=False)
+            # https://docs.ultralytics.com/zh/modes/predict/
+            # 参考YOLO文档，对于每一帧直接调用模型，classes是识别的内容代号，verbose是否在控制台打印
 
-        command = "undetected"
-        # 没有满足时的默认文本
+            command = "undetected"
+            # 没有满足时的默认文本
 
-        if len(results[0].boxes) == 1:
-            # results[0] 是对应这次传入的那一帧的检测结果对象
-            # 每个经由model预测并返回的对象都具有boxes、masks、keypoints等属性可以调用。
-            # 参考https://docs.ultralytics.com/zh/modes/predict/#key-features-of-predict-mode
-            # results[0].boxes 是这个帧上所有检测到的边界框集合（对象数量）
+            if len(results[0].boxes) == 1:
+                # results[0] 是对应这次传入的那一帧的检测结果对象
+                # 每个经由model预测并返回的对象都具有boxes、masks、keypoints等属性可以调用。
+                # 参考https://docs.ultralytics.com/zh/modes/predict/#key-features-of-predict-mode
+                # results[0].boxes 是这个帧上所有检测到的边界框集合（对象数量）
 
-            box = results[0].boxes[0]
-            xyxy = box.xyxy[0].cpu().numpy()
-            # xyxy是box对象的属性，代表四个坐标点(x_min, y_min, x_max, y_max)
-            # 加上[0]确保获取一维坐标
-            # 从NPU转移到CPU运行，从tensor格式转化为numpy数组
+                box = results[0].boxes[0]
+                xyxy = box.xyxy[0].cpu().numpy()
+                # xyxy是box对象的属性，代表四个坐标点(x_min, y_min, x_max, y_max)
+                # 加上[0]确保获取一维坐标
+                # 从NPU转移到CPU运行，从tensor格式转化为numpy数组
 
-            object_center_x = (xyxy[0] + xyxy[2]) / 2
+                object_center_x = (xyxy[0] + xyxy[2]) / 2
 
-            error = object_center_x - frame_center_x
-            # 负数偏左，正数偏右
+                error = object_center_x - frame_center_x
+                # 负数偏左，正数偏右
 
-            size = abs(xyxy[0]-xyxy[2])*abs(xyxy[1]-xyxy[3])
-            # 用来确定距离
+                size = abs(xyxy[0]-xyxy[2])*abs(xyxy[1]-xyxy[3])
+                # 用来确定距离
 
-            if (ser is not None and UnableToSendData==False):
-                try:
-                    SendDataToStm32(error, size,ser)
-                except Exception as e:
-                    print("无法发送数据至单片机\n")
-                    UnableToSendData = True
+                dead_zone = 50
+                # 决定中间的范围有多大
 
-            dead_zone = 50
-            # 决定中间的范围有多大
+                # 保留死区：当偏差落在 dead_zone 内时不触发 PID 纠偏，向下位机发送 0 纠偏量
+                pid_error = 0 if abs(error) <= dead_zone else error
 
-            command="error "+str(error)+"  "+"size "+str(size)
+                if (ser is not None and UnableToSendData==False):
+                    try:
+                        SendDataToStm32(pid_error, size,ser)
+                    except Exception as e:
+                        print("无法发送数据至单片机\n")
+                        UnableToSendData = True
 
-            cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0, 255, 0), 2)
-            # 用法是这样：
-            # Parameters
-            # img	Image.
-            # pt1	Vertex of the rectangle.
-            # pt2	Vertex of the rectangle opposite to pt1 .
-            # color	Rectangle color or brightness (grayscale image).
-            # thickness	Thickness of lines that make up the rectangle. Negative values, like FILLED, mean that the function has to draw a filled rectangle.
-            # lineType	Type of the line. See LineTypes
-            # shift	Number of fractional bits in the point coordinates.
+                command="error "+str(error)+"  "+"size "+str(size)
 
-        elif len(results[0].boxes) > 1:
-            command = "stop"
-            if (ser is not None and UnableToSendData==False):
-                try:
-                    packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
-                    ser.write(packet)
-                except Exception as e:
-                    print("无法发送数据至单片机\n")
-                    UnableToSendData = True
+                cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0, 255, 0), 2)
+                # 用法是这样：
+                # Parameters
+                # img       Image.
+                # pt1       Vertex of the rectangle.
+                # pt2       Vertex of the rectangle opposite to pt1 .
+                # color     Rectangle color or brightness (grayscale image).
+                # thickness Thickness of lines that make up the rectangle. Negative values, like FILLED, mean that the function has to draw a filled rectangle.
+                # lineType  Type of the line. See LineTypes
+                # shift     Number of fractional bits in the point coordinates.
 
-        else:
-            command = "stop"
-            if (ser is not None and UnableToSendData==False):
-                try:
-                    packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
-                    ser.write(packet)
-                except Exception as e:
-                    print("无法发送数据至单片机\n")
-                    UnableToSendData = True
+            elif len(results[0].boxes) > 1:
+                command = "stop"
+                if (ser is not None and UnableToSendData==False):
+                    try:
+                        packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
+                        ser.write(packet)
+                    except Exception as e:
+                        print("无法发送数据至单片机\n")
+                        UnableToSendData = True
 
-        cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.imshow('YOLOv8s Test', frame)
+            else:
+                command = "stop"
+                if (ser is not None and UnableToSendData==False):
+                    try:
+                        packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
+                        ser.write(packet)
+                    except Exception as e:
+                        print("无法发送数据至单片机\n")
+                        UnableToSendData = True
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.imshow('YOLOv8s Test', frame)
 
-    cap.release()
-    cv2.destroyAllWindows()
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        if ser is not None and ser.is_open:
+            ser.close()
 
 def read_config(config_path: str):
     if not config_path:
