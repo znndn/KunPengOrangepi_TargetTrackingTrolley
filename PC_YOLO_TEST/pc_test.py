@@ -15,7 +15,9 @@ def SendDataToStm32(x_offset, size,ser):
     # 小端，永远显式地加上 < 或 >
     ser.write(packet)
 
-def start_recognition(serial_port: str, camera_index: int, desired_width: int, desired_height: int):
+def start_recognition(
+    serial_port: str, camera_index: int, desired_width: int, desired_height: int, headless: bool
+):
     model = YOLO('yolov8s.pt')
 
     cap = cv2.VideoCapture(camera_index)
@@ -42,6 +44,8 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
     print("摄像头运行中\n按下Q退出")
     UnableToSendData = False
     ser = None
+
+    display_enabled = not headless
 
     if serial_port.startswith("/"):
         if not os.path.exists(serial_port):
@@ -158,10 +162,16 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
                         UnableToSendData = True
 
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.imshow('YOLOv8s Test', frame)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            if display_enabled:
+                try:
+                    cv2.imshow('YOLOv8s Test', frame)
+
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                except cv2.error:
+                    print("检测到无法创建显示窗口，已自动切换为无界面模式，仅进行推理和串口发送。")
+                    display_enabled = False
     finally:
         cap.release()
         cv2.destroyAllWindows()
@@ -209,6 +219,11 @@ def parse_args():
         default=int(os.getenv("CAMERA_HEIGHT", 480)),
         help="期望高度，可通过命令行、环境变量CAMERA_HEIGHT或配置文件指定",
     )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="无界面模式，跳过画面显示，仅进行推理与串口发送",
+    )
     return parser.parse_args()
 
 
@@ -230,7 +245,7 @@ def merge_camera_config(args):
 def main():
     args = parse_args()
     camera_index, width, height = merge_camera_config(args)
-    start_recognition(args.serial_port, camera_index, width, height)
+    start_recognition(args.serial_port, camera_index, width, height, args.headless)
 
 if __name__ == "__main__":
     main()
