@@ -1,3 +1,6 @@
+import argparse
+import os
+
 import cv2
 import serial
 import struct
@@ -11,7 +14,7 @@ def SendDataToStm32(x_offset, size,ser):
     # 小端，永远显式地加上 < 或 >
     ser.write(packet)
 
-def start_recognition():
+def start_recognition(serial_port: str):
     model = YOLO('yolov8s.pt')
 
     cap = cv2.VideoCapture(0)
@@ -34,13 +37,25 @@ def start_recognition():
     UnableToSendData = False
     ser = None
 
+    if serial_port.startswith("/"):
+        if not os.path.exists(serial_port):
+            print(f"串口设备 {serial_port} 不存在，请检查连接或使用 --serial-port 指定实际串口号")
+            cap.release()
+            cv2.destroyAllWindows()
+            return
+        if not os.access(serial_port, os.R_OK | os.W_OK):
+            print(f"没有访问串口设备 {serial_port} 的权限，请检查权限或使用 sudo 运行")
+            cap.release()
+            cv2.destroyAllWindows()
+            return
+
     try:
-        ser = serial.Serial("COM5", 115200, timeout=0.1)
-        # 防止串口连接时重置/挂起 STM32
+        ser = serial.Serial(serial_port, 115200, timeout=0.1)
+        # 防止串口连接时重置/挂起 STM32（将占位符替换为实际串口号）
         ser.setRTS(False)
         ser.setDTR(False)
 
-        print("串口连接成功")
+        print(f"串口 {serial_port} 连接成功")
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
         cap.release()
@@ -141,8 +156,19 @@ def start_recognition():
     cap.release()
     cv2.destroyAllWindows()
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="KunPeng YOLO target tracking")
+    parser.add_argument(
+        "--serial-port",
+        default=os.getenv("SERIAL_PORT", "/dev/ttyUSB0"),
+        help="串口号（如 /dev/ttyUSB0 或 COM5，可通过命令行或环境变量SERIAL_PORT配置）",
+    )
+    return parser.parse_args()
+
+
 def main():
-    start_recognition()
+    args = parse_args()
+    start_recognition(args.serial_port)
 
 if __name__ == "__main__":
     main()
