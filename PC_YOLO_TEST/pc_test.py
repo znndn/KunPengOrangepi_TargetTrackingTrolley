@@ -32,6 +32,7 @@ def start_recognition():
 
     print("摄像头运行中\n按下Q退出")
     UnableToSendData = False
+    ser = None
 
     try:
         ser = serial.Serial("COM5", 115200, timeout=0.1)
@@ -42,6 +43,9 @@ def start_recognition():
         print("串口 COM5 连接成功")
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
+        cap.release()
+        cv2.destroyAllWindows()
+        return
 
     while True:
 
@@ -85,7 +89,7 @@ def start_recognition():
             size = abs(xyxy[0]-xyxy[2])*abs(xyxy[1]-xyxy[3])
             # 用来确定距离
 
-            if (UnableToSendData==False):
+            if (ser is not None and UnableToSendData==False):
                 try:
                     SendDataToStm32(error, size,ser)
                 except Exception as e:
@@ -113,7 +117,7 @@ def start_recognition():
 
         else:
             command = "stop"
-            if (UnableToSendData==False):
+            if (ser is not None and UnableToSendData==False):
                 try:
                     packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
                     ser.write(packet)
