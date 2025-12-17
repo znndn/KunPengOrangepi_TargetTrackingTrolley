@@ -114,6 +114,13 @@ def start_recognition():
 
         elif len(results[0].boxes) > 1:
             command = "stop"
+            if (ser is not None and UnableToSendData==False):
+                try:
+                    packet = struct.pack('<BBhIB', 0xB3, 0x00, 0, 0, 0x5B)
+                    ser.write(packet)
+                except Exception as e:
+                    print("无法发送数据至单片机\n")
+                    UnableToSendData = True
 
         else:
             command = "stop"
