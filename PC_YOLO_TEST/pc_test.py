@@ -12,7 +12,7 @@ def SendDataToStm32(x_offset, size,ser):
     ser.write(packet)
 
 def start_recognition():
-    model = YOLO('yolo11n.pt')
+    model = YOLO('yolo8s.pt')
 
     cap = cv2.VideoCapture(0)
     # 确认开发板也是0哦,表示首选
@@ -40,7 +40,7 @@ def start_recognition():
         ser.setRTS(False)
         ser.setDTR(False)
 
-        print("串口 COM5 连接成功")
+        print("串口连接成功")
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
         cap.release()
@@ -133,7 +133,7 @@ def start_recognition():
                     UnableToSendData = True
 
         cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.imshow('YOLOv11 PC Test', frame)
+        cv2.imshow('YOLOv8 Test', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
