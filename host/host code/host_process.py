@@ -2,6 +2,7 @@ import cv2
 import serial
 import os
 import struct
+import time
 from ultralytics import YOLO
 
 import host_send
@@ -59,6 +60,7 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
         return
 
     try:
+        last_log_time = time.time()
         while True:
 
             # 表示逐帧获取
@@ -81,6 +83,7 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
             command = "undetected"
             # 没有满足时的默认文本
 
+            log_message = "未检测到物品"
             if len(results[0].boxes) == 1:
                 # results[0] 是对应这次传入的那一帧的检测结果对象
                 # 每个经由model预测并返回的对象都具有boxes、masks、keypoints等属性可以调用。
@@ -115,6 +118,7 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
                         UnableToSendData = True
 
                 command="error "+str(error)+"  "+"size "+str(size)
+                log_message = f"物品检测: x_offset={error:.2f}, size={size:.2f}"
 
                 cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0, 255, 0), 2)
                 # 用法是这样：
@@ -137,6 +141,7 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
                         print("无法发送数据至单片机\n")
                         UnableToSendData = True
 
+                log_message = "检测到多个物品，暂停控制"
             else:
                 command = "stop"
                 if (ser is not None and UnableToSendData==False):
@@ -146,6 +151,12 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
                     except Exception as e:
                         print("无法发送数据至单片机\n")
                         UnableToSendData = True
+
+                log_message = "未检测到物品"
+
+            if time.time() - last_log_time >= 1:
+                print(log_message)
+                last_log_time = time.time()
 
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
