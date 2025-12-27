@@ -1,24 +1,13 @@
-import argparse
-import configparser
-import os
-
 import cv2
 import serial
+import os
 import struct
 from ultralytics import YOLO
 
-# 注意画幅已经被强制
-def SendDataToStm32(x_offset, size,ser):
-    x_offset = max(-320, min(320, int(x_offset)))
-    size = max(0, min(307200, int(size)))
-    packet = struct.pack('<BBhIB', 0xB3, 0x01, x_offset, size, 0x5B)
-    # 小端，永远显式地加上 < 或 >
-    ser.write(packet)
+import host_send
 
-def start_recognition(
-    serial_port: str, camera_index: int, desired_width: int, desired_height: int, headless: bool
-):
-    model = YOLO('yolov8s.pt')
+def start_recognition(serial_port: str, camera_index: int, desired_width: int, desired_height: int, headless: bool):
+    model = YOLO('../yolov8s.pt')
 
     cap = cv2.VideoCapture(camera_index)
     # 确认开发板也是0哦,表示首选
@@ -33,10 +22,7 @@ def start_recognition(
     print(f"当前摄像头分辨率: {actual_width} x {actual_height}")
 
     if not cap.isOpened() or int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
-        print(
-            "摄像头打开失败或分辨率未生效，请核对 /dev/video* 设备是否正确，"
-            "或将配置中的摄像头索引/分辨率占位符替换为实际值。"
-        )
+        print("摄像头打开失败或分辨率未生效，请核对 /dev/video* 设备是否正确，")
         cap.release()
         cv2.destroyAllWindows()
         exit()
@@ -49,12 +35,12 @@ def start_recognition(
 
     if serial_port.startswith("/"):
         if not os.path.exists(serial_port):
-            print(f"串口设备 {serial_port} 不存在，请检查连接或使用 --serial-port 指定实际串口号")
+            print(f"串口设备 {serial_port} 不存在，使用 --serial-port 指定实际串口号")
             cap.release()
             cv2.destroyAllWindows()
             return
         if not os.access(serial_port, os.R_OK | os.W_OK):
-            print(f"没有访问串口设备 {serial_port} 的权限，请检查权限或使用 sudo 运行")
+            print(f"没有访问串口设备 {serial_port} 的权限")
             cap.release()
             cv2.destroyAllWindows()
             return
@@ -123,7 +109,7 @@ def start_recognition(
 
                 if (ser is not None and UnableToSendData==False):
                     try:
-                        SendDataToStm32(pid_error, size,ser)
+                        host_send.SendDataToStm32(pid_error, size, ser)
                     except Exception as e:
                         print("无法发送数据至单片机\n")
                         UnableToSendData = True
@@ -170,83 +156,11 @@ def start_recognition(
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
                 except cv2.error:
-                    print("检测到无法创建显示窗口，已自动切换为无界面模式，仅进行推理和串口发送。")
+                    print("无法创建显示窗口")
                     display_enabled = False
     finally:
         cap.release()
         cv2.destroyAllWindows()
         if ser is not None and ser.is_open:
             ser.close()
-
-def read_config(config_path: str):
-    if not config_path:
-        return {}
-    if not os.path.exists(config_path):
-        print(f"配置文件 {config_path} 不存在，将使用命令行/默认参数。")
-        return {}
-
-    config = configparser.ConfigParser()
-    config.read(config_path, encoding="utf-8")
-    return config
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="KunPeng YOLO target tracking")
-    parser.add_argument(
-        "--serial-port",
-        default=os.getenv("SERIAL_PORT", "/dev/ttyUSB0"),
-        help="串口号（如 /dev/ttyUSB0 或 COM5，可通过命令行或环境变量SERIAL_PORT配置）",
-    )
-    parser.add_argument(
-        "--config",
-        help="可选配置文件路径，支持 [camera] 段的 index/width/height 参数",
-    )
-    parser.add_argument(
-        "--camera-index",
-        type=int,
-        default=int(os.getenv("CAMERA_INDEX", 0)),
-        help="摄像头索引，可通过命令行、环境变量CAMERA_INDEX或配置文件指定",
-    )
-    parser.add_argument(
-        "--width",
-        type=int,
-        default=int(os.getenv("CAMERA_WIDTH", 640)),
-        help="期望宽度，可通过命令行、环境变量CAMERA_WIDTH或配置文件指定",
-    )
-    parser.add_argument(
-        "--height",
-        type=int,
-        default=int(os.getenv("CAMERA_HEIGHT", 480)),
-        help="期望高度，可通过命令行、环境变量CAMERA_HEIGHT或配置文件指定",
-    )
-    parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="无界面模式，跳过画面显示，仅进行推理与串口发送",
-    )
-    return parser.parse_args()
-
-
-def merge_camera_config(args):
-    config = read_config(args.config) if args.config else {}
-
-    if isinstance(config, configparser.ConfigParser) and config.has_section("camera"):
-        camera_index = config.getint("camera", "index", fallback=args.camera_index)
-        width = config.getint("camera", "width", fallback=args.width)
-        height = config.getint("camera", "height", fallback=args.height)
-    else:
-        camera_index = args.camera_index
-        width = args.width
-        height = args.height
-
-    return camera_index, width, height
-
-
-def main():
-    args = parse_args()
-    camera_index, width, height = merge_camera_config(args)
-    start_recognition(args.serial_port, camera_index, width, height, args.headless)
-
-if __name__ == "__main__":
-    main()
 
