@@ -7,7 +7,15 @@ from ultralytics import YOLO
 
 import host_send
 
-def start_recognition(serial_port: str, camera_index: int, desired_width: int, desired_height: int, headless: bool):
+def start_recognition(
+    serial_port: str,
+    camera_index: int,
+    desired_width: int,
+    desired_height: int,
+    headless: bool,
+    rts_level: bool = True,
+    dtr_level: bool = False,
+):
     model = YOLO('../yolov8s.pt')
 
     cap = cv2.VideoCapture(camera_index)
@@ -48,11 +56,13 @@ def start_recognition(serial_port: str, camera_index: int, desired_width: int, d
 
     try:
         ser = serial.Serial(serial_port, 115200, timeout=0.1)
-        # 防止串口连接时重置/挂起 STM32（将占位符替换为实际串口号）
-        ser.setRTS(False)
-        ser.setDTR(False)
+        # 根据用户配置设置串口控制信号，默认 RTS=高、DTR=低，避免部分板卡复位/进入 Bootloader
+        ser.setRTS(rts_level)
+        ser.setDTR(dtr_level)
 
-        print(f"串口 {serial_port} 连接成功")
+        print(
+            f"串口 {serial_port} 连接成功 (RTS={'高' if rts_level else '低'}, DTR={'高' if dtr_level else '低'})"
+        )
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
         cap.release()

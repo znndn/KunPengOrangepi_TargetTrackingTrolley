@@ -40,6 +40,20 @@ def parse_args():
         action="store_true",
         help="无界面",
     )
+    parser.add_argument(
+        "--rts-level",
+        type=int,
+        choices=[0, 1],
+        default=int(os.getenv("SERIAL_RTS_LEVEL", 1)),
+        help="RTS 电平 (0 低, 1 高)，可用环境变量 SERIAL_RTS_LEVEL 配置",
+    )
+    parser.add_argument(
+        "--dtr-level",
+        type=int,
+        choices=[0, 1],
+        default=int(os.getenv("SERIAL_DTR_LEVEL", 0)),
+        help="DTR 电平 (0 低, 1 高)，可用环境变量 SERIAL_DTR_LEVEL 配置",
+    )
     return parser.parse_args()
 
 
@@ -74,7 +88,15 @@ def read_config(config_path: str):
 def main():
     args = parse_args()
     camera_index, width, height = merge_camera_config(args)
-    host_process.start_recognition(args.serial_port, camera_index, width, height, args.headless)
+    host_process.start_recognition(
+        args.serial_port,
+        camera_index,
+        width,
+        height,
+        args.headless,
+        bool(args.rts_level),
+        bool(args.dtr_level),
+    )
 
 if __name__ == "__main__":
     main()
