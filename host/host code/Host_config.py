@@ -6,6 +6,18 @@ import host_process
 import host_send
 
 
+def _get_int_env(var_name: str, default: int) -> int:
+    value = os.getenv(var_name)
+    if value is None:
+        return default
+
+    try:
+        return int(value)
+    except ValueError:
+        print(f"环境变量 {var_name} 的值 '{value}' 无法解析为整数，使用默认值 {default}。")
+        return default
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="KunPeng YOLO target tracking")
     parser.add_argument(
@@ -44,14 +56,14 @@ def parse_args():
         "--rts-level",
         type=int,
         choices=[0, 1],
-        default=int(os.getenv("SERIAL_RTS_LEVEL", 1)),
+        default=_get_int_env("SERIAL_RTS_LEVEL", 1),
         help="RTS 电平 (0 低, 1 高)，可用环境变量 SERIAL_RTS_LEVEL 配置",
     )
     parser.add_argument(
         "--dtr-level",
         type=int,
         choices=[0, 1],
-        default=int(os.getenv("SERIAL_DTR_LEVEL", 0)),
+        default=_get_int_env("SERIAL_DTR_LEVEL", 0),
         help="DTR 电平 (0 低, 1 高)，可用环境变量 SERIAL_DTR_LEVEL 配置",
     )
     return parser.parse_args()
