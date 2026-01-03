@@ -35,11 +35,6 @@ def parse_args():
         default=int(os.getenv("CAMERA_HEIGHT", 480)),
         help="期望高度通过命令行环境变量CAMERA_HEIGHT或配置文件",
     )
-    parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="无界面",
-    )
     return parser.parse_args()
 
 
@@ -79,7 +74,6 @@ def main():
         camera_index,
         width,
         height,
-        args.headless,
     )
 
 if __name__ == "__main__":
