@@ -64,8 +64,8 @@ int main(void)
 				}
 				else
 				{
-					float pid_output = (Kp * Vision_Error) + (Kd * (Vision_Error - Prev_Error));
-					Prev_Error = Vision_Error;
+                                        float pid_output = (Kp * -Vision_Error) + (Kd * (-Vision_Error - Prev_Error));
+                                        Prev_Error = -Vision_Error;
 
 					int turn_val = (int)pid_output;
 
