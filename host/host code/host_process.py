@@ -173,7 +173,7 @@ def start_recognition():
 
                 log_message = "未检测到物品"
 
-            if time.time() - last_log_time >= 1:
+            if time.time() - last_log_time >= 0.5:
                 print(log_message)
                 last_log_time = time.time()
 
