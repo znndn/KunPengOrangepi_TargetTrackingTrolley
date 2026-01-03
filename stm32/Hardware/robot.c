@@ -7,7 +7,13 @@ void robot_Init(void)
 	PWM_Init(); 
 }
 
-//ËÄÂ·PWM¿ØÖÆËÙ¶Èµ÷½Ú£¬1speedÇ°½ø£¬2speedºóÍË£¨ÓÀÔ¶ÊÇÕıÊı£¬Í¬Ê±ÁíÒ»¸ö±ØĞëÉèÎª0£©
+    /*
+     * The right motor wiring is reversed, so a positive logical value should
+     * drive the wheel forward with the opposite PWM polarity.
+     */
+    right_pwm = -right_pwm;
+
+//å››è·¯PWMæ§åˆ¶é€Ÿåº¦è°ƒèŠ‚ï¼Œ1speedå‰è¿›ï¼Œ2speedåé€€ï¼ˆæ°¸è¿œæ˜¯æ­£æ•°ï¼ŒåŒæ—¶å¦ä¸€ä¸ªå¿…é¡»è®¾ä¸º0ï¼‰
 void robot_speed(uint8_t left1_speed,uint8_t left2_speed,uint8_t right1_speed,uint8_t right2_speed)
 {	
     TIM_SetCompare1(TIM4,left1_speed);
@@ -17,9 +23,9 @@ void robot_speed(uint8_t left1_speed,uint8_t left2_speed,uint8_t right1_speed,ui
 }
 
 /**
-  * @brief  Ö§³ÖÕı¸ºËÙ¶ÈµÄÔË¶¯¿ØÖÆ
-  * @param  left_pwm:  ×óÂÖËÙ¶È -100µ½100
-  * @param  right_pwm: ÓÒÂÖËÙ¶È -100µ½100
+  * @brief  æ”¯æŒæ­£è´Ÿé€Ÿåº¦çš„è¿åŠ¨æ§åˆ¶
+  * @param  left_pwm:  å·¦è½®é€Ÿåº¦ -100åˆ°100
+  * @param  right_pwm: å³è½®é€Ÿåº¦ -100åˆ°100
   */
 void makerobo_SetPWM(int16_t left_pwm, int16_t right_pwm)
 {
@@ -57,9 +63,9 @@ void makerobo_SetPWM(int16_t left_pwm, int16_t right_pwm)
 
 
 
-// »ù±¾µÄÔË¶¯º¯Êı
-// »úÆ÷ÈËÇ°½ø
-void makerobo_run(int8_t speed,uint16_t time)  //Ç°½øº¯Êı
+// åŸºæœ¬çš„è¿åŠ¨å‡½æ•°
+// æœºå™¨äººå‰è¿›
+void makerobo_run(int8_t speed,uint16_t time)  //å‰è¿›å‡½æ•°
 {
         if(speed > 100)
 		{
@@ -70,17 +76,17 @@ void makerobo_run(int8_t speed,uint16_t time)  //Ç°½øº¯Êı
 			speed = 0;
 		}
 	    robot_speed(speed,0,speed,0);
-		Delay_ms(time);                 // Ê±¼äÎªºÁÃë
-		robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹
+		Delay_ms(time);                 // æ—¶é—´ä¸ºæ¯«ç§’
+		robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢
 }
 
-void makerobo_brake(uint16_t time) //É²³µº¯Êı
+void makerobo_brake(uint16_t time) //åˆ¹è½¦å‡½æ•°
 {
-		robot_speed(0,0,0,0);     // µç»úÍ£Ö¹ 
-		Delay_ms(time);          // Ê±¼äÎªºÁÃë    
+		robot_speed(0,0,0,0);     // ç”µæœºåœæ­¢ 
+		Delay_ms(time);          // æ—¶é—´ä¸ºæ¯«ç§’    
 }
 
-void makerobo_Left(int8_t speed,uint16_t time) //×ó×ªº¯Êı
+void makerobo_Left(int8_t speed,uint16_t time) //å·¦è½¬å‡½æ•°
 {
 	    if(speed > 100)
 			{
@@ -91,12 +97,12 @@ void makerobo_Left(int8_t speed,uint16_t time) //×ó×ªº¯Êı
 				speed = 0;
 			}
 		robot_speed(0,0,speed,0);
-		Delay_ms(time);                 //Ê±¼äÎªºÁÃë  
-	  robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹
+		Delay_ms(time);                 //æ—¶é—´ä¸ºæ¯«ç§’  
+	  robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢
 
 }
 
-void makerobo_Spin_Left(int8_t speed,uint16_t time) //×óĞı×ªº¯Êı
+void makerobo_Spin_Left(int8_t speed,uint16_t time) //å·¦æ—‹è½¬å‡½æ•°
 {
 		  if(speed > 100)
 			{
@@ -107,11 +113,11 @@ void makerobo_Spin_Left(int8_t speed,uint16_t time) //×óĞı×ªº¯Êı
 				speed = 0;
 			}  
 		robot_speed(0,speed,speed,0);
-		Delay_ms(time);                    //Ê±¼äÎªºÁÃë 
-    robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹			
+		Delay_ms(time);                    //æ—¶é—´ä¸ºæ¯«ç§’ 
+    robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢			
 }
 
-void makerobo_Right(int8_t speed,uint16_t time) //ÓÒ×ªº¯Êı
+void makerobo_Right(int8_t speed,uint16_t time) //å³è½¬å‡½æ•°
 {
 	    if(speed > 100)
 			{
@@ -122,12 +128,12 @@ void makerobo_Right(int8_t speed,uint16_t time) //ÓÒ×ªº¯Êı
 				speed = 0;
 			}
 		robot_speed(speed,0,0,0);
-		Delay_ms(time);                 //Ê±¼äÎªºÁÃë  
-	  robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹
+		Delay_ms(time);                 //æ—¶é—´ä¸ºæ¯«ç§’  
+	  robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢
 
 }
 
-void makerobo_Spin_Right(int8_t speed,uint16_t time) //ÓÒĞı×ªº¯Êı
+void makerobo_Spin_Right(int8_t speed,uint16_t time) //å³æ—‹è½¬å‡½æ•°
 {
 		  if(speed > 100)
 			{
@@ -138,11 +144,11 @@ void makerobo_Spin_Right(int8_t speed,uint16_t time) //ÓÒĞı×ªº¯Êı
 				speed = 0;
 			}  
 		robot_speed(speed,0,0,speed);
-		Delay_ms(time);                    //Ê±¼äÎªºÁÃë 
-    robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹			
+		Delay_ms(time);                    //æ—¶é—´ä¸ºæ¯«ç§’ 
+    robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢			
 }
 
-void makerobo_back(int8_t speed,uint16_t time)  //ºóÍËº¯Êı
+void makerobo_back(int8_t speed,uint16_t time)  //åé€€å‡½æ•°
 {
       if(speed > 100)
 			{
@@ -153,7 +159,7 @@ void makerobo_back(int8_t speed,uint16_t time)  //ºóÍËº¯Êı
 				speed = 0;
 			}
 	    robot_speed(0,speed,0,speed);
-			Delay_ms(time);                 // Ê±¼äÎªºÁÃë
-			robot_speed(0,0,0,0);           // »úÆ÷ÈËÍ£Ö¹
+			Delay_ms(time);                 // æ—¶é—´ä¸ºæ¯«ç§’
+			robot_speed(0,0,0,0);           // æœºå™¨äººåœæ­¢
  
 }
