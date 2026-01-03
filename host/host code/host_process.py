@@ -13,8 +13,8 @@ def start_recognition(
     desired_width: int,
     desired_height: int,
     headless: bool,
-    rts_level: bool = True,
-    dtr_level: bool = False,
+    rts_level: bool = False,
+    dtr_level: bool = True,
 ):
     model = YOLO('../yolov8s.pt')
 
