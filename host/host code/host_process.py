@@ -9,8 +9,10 @@ import host_send
 
 
 CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0"
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
 
-def _open_camera(desired_width: int, desired_height: int):
+def _open_camera():
     if not os.path.exists(CAMERA_DEVICE_PATH):
         print(f"摄像头设备 {CAMERA_DEVICE_PATH} 不存在或未连接")
         return None
@@ -22,14 +24,14 @@ def _open_camera(desired_width: int, desired_height: int):
         cv2.destroyAllWindows()
         return None
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, desired_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, desired_height)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
 
     actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print(f"当前摄像头分辨率: {actual_width} x {actual_height}")
 
-    if int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
+    if int(actual_width) != int(CAMERA_WIDTH) or int(actual_height) != int(CAMERA_HEIGHT):
         print(
             f"摄像头打开失败或分辨率未生效，请确认 {CAMERA_DEVICE_PATH} 是否存在且可用"
         )
@@ -42,12 +44,10 @@ def _open_camera(desired_width: int, desired_height: int):
 
 def start_recognition(
     serial_port: str,
-    desired_width: int,
-    desired_height: int,
 ):
     model = YOLO('../yolov8s.pt')
 
-    cap = _open_camera(desired_width, desired_height)
+    cap = _open_camera()
     if cap is None:
         return
 
