@@ -9,6 +9,7 @@ import host_send
 
 
 CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0"
+SERIAL_DEVICE_PATH = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
 
@@ -42,9 +43,7 @@ def _open_camera():
     return cap
 
 
-def start_recognition(
-    serial_port: str,
-):
+def start_recognition():
     model = YOLO('../yolov8s.pt')
 
     cap = _open_camera()
@@ -55,25 +54,24 @@ def start_recognition(
     UnableToSendData = False
     ser = None
 
-    if serial_port.startswith("/"):
-        if not os.path.exists(serial_port):
-            print(f"串口设备 {serial_port} 不存在，使用 --serial-port 指定实际串口号")
+    try:
+        if not os.path.exists(SERIAL_DEVICE_PATH):
+            print(f"串口设备 {SERIAL_DEVICE_PATH} 不存在或未连接")
             cap.release()
             cv2.destroyAllWindows()
             return
-        if not os.access(serial_port, os.R_OK | os.W_OK):
-            print(f"没有访问串口设备 {serial_port} 的权限")
+        if not os.access(SERIAL_DEVICE_PATH, os.R_OK | os.W_OK):
+            print(f"没有访问串口设备 {SERIAL_DEVICE_PATH} 的权限")
             cap.release()
             cv2.destroyAllWindows()
             return
 
-    try:
-        ser = serial.Serial(serial_port, 115200, timeout=0.1)
+        ser = serial.Serial(SERIAL_DEVICE_PATH, 115200, timeout=0.1)
         # 固定为 RTS=低、DTR=高，避免复位或进入 Bootloader
         ser.setRTS(False)
         ser.setDTR(True)
 
-        print(f"串口 {serial_port} 连接成功 (RTS=低, DTR=高)")
+        print(f"串口 {SERIAL_DEVICE_PATH} 连接成功 (RTS=低, DTR=高)")
     except serial.SerialException as e:
         print(f"串口连接失败: {e}")
         cap.release()
