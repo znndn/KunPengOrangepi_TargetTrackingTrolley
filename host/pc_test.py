@@ -16,7 +16,7 @@ def SendDataToStm32(x_offset, size,ser):
     ser.write(packet)
 
 def start_recognition(
-    serial_port: str, camera_index: int, desired_width: int, desired_height: int, headless: bool
+    serial_port: str, camera_index: int, desired_width: int, desired_height: int
 ):
     model = YOLO('yolov8s.pt')
 
@@ -41,11 +41,9 @@ def start_recognition(
         cv2.destroyAllWindows()
         exit()
 
-    print("摄像头运行中\n按下Q退出")
+    print("摄像头运行中")
     UnableToSendData = False
     ser = None
-
-    display_enabled = not headless
 
     if serial_port.startswith("/"):
         if not os.path.exists(serial_port):
@@ -163,15 +161,6 @@ def start_recognition(
 
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-            if display_enabled:
-                try:
-                    cv2.imshow('YOLOv8s Test', frame)
-
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                except cv2.error:
-                    print("检测到无法创建显示窗口，已自动切换为无界面模式，仅进行推理和串口发送。")
-                    display_enabled = False
     finally:
         cap.release()
         cv2.destroyAllWindows()
@@ -219,11 +208,6 @@ def parse_args():
         default=int(os.getenv("CAMERA_HEIGHT", 480)),
         help="期望高度通过命令行环境变量CAMERA_HEIGHT或配置文件",
     )
-    parser.add_argument(
-        "--headless",
-        action="store_true",
-        help="无界面",
-    )
     return parser.parse_args()
 
 
@@ -245,7 +229,7 @@ def merge_camera_config(args):
 def main():
     args = parse_args()
     camera_index, width, height = merge_camera_config(args)
-    start_recognition(args.serial_port, camera_index, width, height, args.headless)
+    start_recognition(args.serial_port, camera_index, width, height)
 
 if __name__ == "__main__":
     main()

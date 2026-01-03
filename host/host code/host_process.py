@@ -12,7 +12,6 @@ def start_recognition(
     camera_index: int,
     desired_width: int,
     desired_height: int,
-    headless: bool,
 ):
     model = YOLO('../yolov8s.pt')
 
@@ -34,11 +33,9 @@ def start_recognition(
         cv2.destroyAllWindows()
         exit()
 
-    print("摄像头运行中\n按下Q退出")
+    print("摄像头运行中")
     UnableToSendData = False
     ser = None
-
-    display_enabled = not headless
 
     if serial_port.startswith("/"):
         if not os.path.exists(serial_port):
@@ -166,15 +163,6 @@ def start_recognition(
 
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-            if display_enabled:
-                try:
-                    cv2.imshow('YOLOv8s Test', frame)
-
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                except cv2.error:
-                    print("无法创建显示窗口")
-                    display_enabled = False
     finally:
         cap.release()
         cv2.destroyAllWindows()
