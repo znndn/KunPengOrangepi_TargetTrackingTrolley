@@ -5,8 +5,8 @@
 #include "LED.h"
 #include "Serial.h" 
 
-float Kp = 0.5f;           // 稍微加大一点，防止低速带不动
-float Kd = 0.15f;           
+float Kp = 0.2f;           // 稍微加大一点，防止低速带不动
+float Kd = 0.0f;           
 float Prev_Error = 0;         // 上一次误差
 
 int Base_Speed = 100;       
