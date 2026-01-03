@@ -7,31 +7,49 @@ from ultralytics import YOLO
 
 import host_send
 
+
+CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0"
+
+def _open_camera(desired_width: int, desired_height: int):
+    if not os.path.exists(CAMERA_DEVICE_PATH):
+        print(f"摄像头设备 {CAMERA_DEVICE_PATH} 不存在或未连接")
+        return None
+
+    cap = cv2.VideoCapture(CAMERA_DEVICE_PATH, cv2.CAP_V4L2)
+    if not cap.isOpened():
+        print(f"摄像头设备 {CAMERA_DEVICE_PATH} 无法打开")
+        cap.release()
+        cv2.destroyAllWindows()
+        return None
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, desired_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, desired_height)
+
+    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"当前摄像头分辨率: {actual_width} x {actual_height}")
+
+    if int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
+        print(
+            f"摄像头打开失败或分辨率未生效，请确认 {CAMERA_DEVICE_PATH} 是否存在且可用"
+        )
+        cap.release()
+        cv2.destroyAllWindows()
+        return None
+
+    return cap
+
+
 def start_recognition(
     serial_port: str,
-    camera_index: int,
     desired_width: int,
     desired_height: int,
 ):
     model = YOLO('../yolov8s.pt')
 
-    cap = cv2.VideoCapture(camera_index)
-    # 确认开发板也是0哦,表示首选
-
-    # 强制设置为 640x480 (宽x高)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, desired_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, desired_height)
-
-    # 输出当前画幅设置
-    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    print(f"当前摄像头分辨率: {actual_width} x {actual_height}")
-
-    if not cap.isOpened() or int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
-        print("摄像头打开失败或分辨率未生效，请核对 /dev/video* 设备是否正确，")
-        cap.release()
-        cv2.destroyAllWindows()
-        exit()
+    cap = _open_camera(desired_width, desired_height)
+    if cap is None:
+        return
 
     print("摄像头运行中")
     UnableToSendData = False
