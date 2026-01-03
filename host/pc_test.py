@@ -61,9 +61,9 @@ def start_recognition(
 
     try:
         ser = serial.Serial(serial_port, 115200, timeout=0.1)
-        # 防止串口连接时重置/挂起 STM32（将占位符替换为实际串口号）
+        # 固定为 RTS=低、DTR=高，防止串口连接时重置/挂起 STM32
         ser.setRTS(False)
-        ser.setDTR(False)
+        ser.setDTR(True)
 
         print(f"串口 {serial_port} 连接成功")
     except serial.SerialException as e:
