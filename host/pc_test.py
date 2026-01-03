@@ -1,11 +1,13 @@
 import argparse
-import configparser
 import os
 
 import cv2
 import serial
 import struct
 from ultralytics import YOLO
+
+
+CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0"
 
 # 注意画幅已经被强制
 def SendDataToStm32(x_offset, size,ser):
@@ -15,31 +17,44 @@ def SendDataToStm32(x_offset, size,ser):
     # 小端，永远显式地加上 < 或 >
     ser.write(packet)
 
-def start_recognition(
-    serial_port: str, camera_index: int, desired_width: int, desired_height: int
-):
-    model = YOLO('yolov8s.pt')
+def _open_camera(desired_width: int, desired_height: int):
+    if not os.path.exists(CAMERA_DEVICE_PATH):
+        print(f"摄像头设备 {CAMERA_DEVICE_PATH} 不存在或未连接")
+        return None
 
-    cap = cv2.VideoCapture(camera_index)
-    # 确认开发板也是0哦,表示首选
+    cap = cv2.VideoCapture(CAMERA_DEVICE_PATH, cv2.CAP_V4L2)
+    if not cap.isOpened():
+        print(f"摄像头设备 {CAMERA_DEVICE_PATH} 无法打开")
+        cap.release()
+        cv2.destroyAllWindows()
+        return None
 
-    # 强制设置为 640x480 (宽x高)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, desired_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, desired_height)
 
-    # 输出当前画幅设置
     actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print(f"当前摄像头分辨率: {actual_width} x {actual_height}")
 
-    if not cap.isOpened() or int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
+    if int(actual_width) != int(desired_width) or int(actual_height) != int(desired_height):
         print(
-            "摄像头打开失败或分辨率未生效，请核对 /dev/video* 设备是否正确，"
-            "或将配置中的摄像头索引/分辨率占位符替换为实际值。"
+            f"摄像头打开失败或分辨率未生效，请确认 {CAMERA_DEVICE_PATH} 是否存在且可用"
         )
         cap.release()
         cv2.destroyAllWindows()
-        exit()
+        return None
+
+    return cap
+
+
+def start_recognition(
+    serial_port: str, desired_width: int, desired_height: int
+):
+    model = YOLO('yolov8s.pt')
+
+    cap = _open_camera(desired_width, desired_height)
+    if cap is None:
+        return
 
     print("摄像头运行中")
     UnableToSendData = False
@@ -167,18 +182,6 @@ def start_recognition(
         if ser is not None and ser.is_open:
             ser.close()
 
-def read_config(config_path: str):
-    if not config_path:
-        return {}
-    if not os.path.exists(config_path):
-        print(f"配置文件 {config_path} 不存在，使用命令行/默认参数。")
-        return {}
-
-    config = configparser.ConfigParser()
-    config.read(config_path, encoding="utf-8")
-    return config
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description="KunPeng YOLO target tracking")
     parser.add_argument(
@@ -187,49 +190,31 @@ def parse_args():
         help="串口号（如 /dev/ttyUSB0 或 COM5，可通过命令行或环境变量SERIAL_PORT配置）",
     )
     parser.add_argument(
-        "--config",
-        help="可选配置文件路径，支持 [camera] 段的 index/width/height 参数",
-    )
-    parser.add_argument(
-        "--camera-index",
-        type=int,
-        default=int(os.getenv("CAMERA_INDEX", 0)),
-        help="摄像头索引通过命令行环境变量CAMERA_INDEX或配置文件",
-    )
-    parser.add_argument(
         "--width",
         type=int,
         default=int(os.getenv("CAMERA_WIDTH", 640)),
-        help="期望宽度通过命令行环境变量CAMERA_WIDTH或配置文件",
+        help="期望宽度，可通过命令行或环境变量CAMERA_WIDTH配置",
     )
     parser.add_argument(
         "--height",
         type=int,
         default=int(os.getenv("CAMERA_HEIGHT", 480)),
-        help="期望高度通过命令行环境变量CAMERA_HEIGHT或配置文件",
+        help="期望高度，可通过命令行或环境变量CAMERA_HEIGHT配置",
     )
     return parser.parse_args()
 
 
 def merge_camera_config(args):
-    config = read_config(args.config) if args.config else {}
+    width = args.width
+    height = args.height
 
-    if isinstance(config, configparser.ConfigParser) and config.has_section("camera"):
-        camera_index = config.getint("camera", "index", fallback=args.camera_index)
-        width = config.getint("camera", "width", fallback=args.width)
-        height = config.getint("camera", "height", fallback=args.height)
-    else:
-        camera_index = args.camera_index
-        width = args.width
-        height = args.height
-
-    return camera_index, width, height
+    return width, height
 
 
 def main():
     args = parse_args()
-    camera_index, width, height = merge_camera_config(args)
-    start_recognition(args.serial_port, camera_index, width, height)
+    width, height = merge_camera_config(args)
+    start_recognition(args.serial_port, width, height)
 
 if __name__ == "__main__":
     main()
