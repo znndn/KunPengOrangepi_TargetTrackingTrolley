@@ -7,12 +7,6 @@ void robot_Init(void)
 	PWM_Init(); 
 }
 
-    /*
-     * The right motor wiring is reversed, so a positive logical value should
-     * drive the wheel forward with the opposite PWM polarity.
-     */
-    right_pwm = -right_pwm;
-
 //四路PWM控制速度调节，1speed前进，2speed后退（永远是正数，同时另一个必须设为0）
 void robot_speed(uint8_t left1_speed,uint8_t left2_speed,uint8_t right1_speed,uint8_t right2_speed)
 {	
@@ -30,6 +24,12 @@ void robot_speed(uint8_t left1_speed,uint8_t left2_speed,uint8_t right1_speed,ui
 void makerobo_SetPWM(int16_t left_pwm, int16_t right_pwm)
 {
     uint8_t L1=0, L2=0, R1=0, R2=0;
+
+    /*
+     * The right motor wiring is reversed, so a positive logical value should
+     * drive the wheel forward with the opposite PWM polarity.
+     */
+    right_pwm = -right_pwm;
 
     if (left_pwm >= 0) 
     {
