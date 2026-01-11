@@ -1,5 +1,38 @@
-__pycache__/
-*.py[cod]
+# =========================
+# Keil MDK / uVision (STM32)
+# =========================
+stm32/Objects/
+stm32/Listings/
+
+*.uvguix.*
+*.uvoptx
+*.uvopt
+*.uvgui.*
+*.uvmpw
+*.uvw
+
+*.o
+*.obj
+*.d
+*.dep
+*.crf
+*.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.lnp
+
+*build_log*
+*.htm
+*.html
+
+*.bak
+*.tmp
+*.old
 *~
+*.swp
+
 .DS_Store
-.idea/
+Thumbs.db
