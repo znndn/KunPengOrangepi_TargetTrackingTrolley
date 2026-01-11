@@ -3,6 +3,7 @@ import serial
 import os
 import struct
 import time
+import threading
 from ultralytics import YOLO
 
 import host_send
@@ -12,6 +13,37 @@ CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0
 SERIAL_DEVICE_PATH = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
+
+
+class LatestFrameReader:
+    def __init__(self, cap):
+        self._cap = cap
+        self._frame = None
+        self._lock = threading.Lock()
+        self._running = True
+        self._thread = threading.Thread(target=self._reader, daemon=True)
+        self._thread.start()
+
+    def _reader(self):
+        while self._running:
+            ret, frame = self._cap.read()
+            if not ret:
+                time.sleep(0.01)
+                continue
+            with self._lock:
+                self._frame = frame
+
+    def read(self):
+        with self._lock:
+            frame = self._frame
+            self._frame = None
+        if frame is None:
+            return None
+        return frame.copy()
+
+    def stop(self):
+        self._running = False
+        self._thread.join(timeout=1)
 
 def _open_camera():
     if not os.path.exists(CAMERA_DEVICE_PATH):
@@ -53,6 +85,7 @@ def start_recognition():
     print("摄像头运行中")
     UnableToSendData = False
     ser = None
+    frame_reader = None
 
     try:
         if not os.path.exists(SERIAL_DEVICE_PATH):
@@ -79,14 +112,13 @@ def start_recognition():
         return
 
     try:
+        frame_reader = LatestFrameReader(cap)
         last_log_time = time.time()
         while True:
-
             # 表示逐帧获取
-            ret, frame = cap.read()
-            if not ret:
-                print("无法读取帧")
-                break
+            frame = frame_reader.read()
+            if frame is None:
+                continue
 
             # 如果单纯需要确认颜色的方块，可以不用模型，OPENCV就行了
 
@@ -180,8 +212,9 @@ def start_recognition():
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     finally:
+        if frame_reader is not None:
+            frame_reader.stop()
         cap.release()
         cv2.destroyAllWindows()
         if ser is not None and ser.is_open:
             ser.close()
-
