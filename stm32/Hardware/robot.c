@@ -25,12 +25,6 @@ void makerobo_SetPWM(int16_t left_pwm, int16_t right_pwm)
 {
     uint8_t L1=0, L2=0, R1=0, R2=0;
 
-    /*
-     * The right motor wiring is reversed, so a positive logical value should
-     * drive the wheel forward with the opposite PWM polarity.
-     */
-    right_pwm = -right_pwm;
-
     if (left_pwm >= 0) 
     {
         if(left_pwm > 100) left_pwm = 100;
