@@ -3,6 +3,7 @@ import serial
 import os
 import struct
 import time
+import threading
 from ultralytics import YOLO
 
 import host_send
@@ -12,6 +13,44 @@ CAMERA_DEVICE_PATH = "/dev/v4l/by-id/usb-ZC_USB_Camera_200901010001-video-index0
 SERIAL_DEVICE_PATH = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
+
+
+class FrameReader:
+    def __init__(self, cap):
+        self.cap = cap
+        self.running = False
+        self.thread = None
+        self.lock = threading.Lock()
+        self.frame = None
+        self.ret = False
+
+    def start(self):
+        if self.running:
+            return
+        self.running = True
+        self.thread = threading.Thread(target=self._loop, daemon=True)
+        self.thread.start()
+
+    def _loop(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            with self.lock:
+                self.ret = ret
+                self.frame = frame if ret else None
+            if not ret:
+                time.sleep(0.01)
+
+    def read(self):
+        with self.lock:
+            if not self.ret or self.frame is None:
+                return None
+            return self.frame.copy()
+
+    def stop(self):
+        self.running = False
+        if self.thread is not None:
+            self.thread.join(timeout=1)
+            self.thread = None
 
 def _open_camera():
     if not os.path.exists(CAMERA_DEVICE_PATH):
@@ -53,38 +92,36 @@ def start_recognition():
     print("摄像头运行中")
     UnableToSendData = False
     ser = None
+    frame_reader = None
 
     try:
         if not os.path.exists(SERIAL_DEVICE_PATH):
             print(f"串口设备 {SERIAL_DEVICE_PATH} 不存在或未连接")
-            cap.release()
-            cv2.destroyAllWindows()
             return
         if not os.access(SERIAL_DEVICE_PATH, os.R_OK | os.W_OK):
             print(f"没有访问串口设备 {SERIAL_DEVICE_PATH} 的权限")
-            cap.release()
-            cv2.destroyAllWindows()
             return
 
-        ser = serial.Serial(SERIAL_DEVICE_PATH, 115200, timeout=0.1)
-        # 固定为 RTS=低、DTR=高，避免复位或进入 Bootloader
-        ser.setRTS(False)
-        ser.setDTR(True)
+        try:
+            ser = serial.Serial(SERIAL_DEVICE_PATH, 115200, timeout=0.1)
+            # 固定为 RTS=低、DTR=高，避免复位或进入 Bootloader
+            ser.setRTS(False)
+            ser.setDTR(True)
 
-        print(f"串口 {SERIAL_DEVICE_PATH} 连接成功 (RTS=低, DTR=高)")
-    except serial.SerialException as e:
-        print(f"串口连接失败: {e}")
-        cap.release()
-        cv2.destroyAllWindows()
-        return
+            print(f"串口 {SERIAL_DEVICE_PATH} 连接成功 (RTS=低, DTR=高)")
+        except serial.SerialException as e:
+            print(f"串口连接失败: {e}")
+            return
 
-    try:
+        frame_reader = FrameReader(cap)
+        frame_reader.start()
+
         last_log_time = time.time()
         while True:
 
             # 表示逐帧获取
-            ret, frame = cap.read()
-            if not ret:
+            frame = frame_reader.read()
+            if frame is None:
                 print("无法读取帧")
                 break
 
@@ -180,8 +217,9 @@ def start_recognition():
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     finally:
+        if frame_reader is not None:
+            frame_reader.stop()
         cap.release()
         cv2.destroyAllWindows()
         if ser is not None and ser.is_open:
             ser.close()
-
