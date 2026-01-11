@@ -85,6 +85,7 @@ def start_recognition():
     print("摄像头运行中")
     UnableToSendData = False
     ser = None
+    frame_reader = None
 
     try:
         if not os.path.exists(SERIAL_DEVICE_PATH):
@@ -111,14 +112,13 @@ def start_recognition():
         return
 
     try:
+        frame_reader = LatestFrameReader(cap)
         last_log_time = time.time()
         while True:
-
             # 表示逐帧获取
-            ret, frame = cap.read()
-            if not ret:
-                print("无法读取帧")
-                break
+            frame = frame_reader.read()
+            if frame is None:
+                continue
 
             # 如果单纯需要确认颜色的方块，可以不用模型，OPENCV就行了
 
@@ -212,6 +212,8 @@ def start_recognition():
             cv2.putText(frame, command, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     finally:
+        if frame_reader is not None:
+            frame_reader.stop()
         cap.release()
         cv2.destroyAllWindows()
         if ser is not None and ser.is_open:
