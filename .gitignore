@@ -36,3 +36,44 @@ stm32/Listings/
 
 .DS_Store
 Thumbs.db
+
+# =========================
+# KunpengOrangePi
+# =========================
+
+# Python venv
+venv/
+.venv/
+*/venv/
+*/.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Torch / ultralytics / cache
+*.pt
+*.pth
+*.onnx
+*.engine
+*.om
+runs/
+weights/
+datasets/
+*.log
+
+# Linux / build artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.dll
+*.dylib
+build/
+dist/
+
+# VSCode / IDE
+.vscode/
+.idea/

@@ -84,7 +84,6 @@ def start_recognition():
     print(f"当前运行设备: {model.device}")
     cap = _open_camera()
     if cap is None:
-        print("cap的结果是none，已终止")
         return
 
     print("摄像头运行中")

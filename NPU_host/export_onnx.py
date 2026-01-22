@@ -6,7 +6,7 @@ def export_to_onnx(weight_path: str = "yolov8s.pt"):
     if not os.path.exists(weight_path):
         return
     model = YOLO(weight_path)
-    model.export(format="onnx", dynamic=False, imgsz=640, simplify=True, opset=13)
+    model.export(format="onnx", dynamic=True)
 
 
 if __name__ == "__main__":
