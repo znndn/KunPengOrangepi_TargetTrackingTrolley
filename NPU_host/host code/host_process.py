@@ -103,6 +103,8 @@ class AscendOmRunner:
         self._output_size = 0
         self._output_dims = None
         self._output_dtype = None
+        self._input_dtype = None
+        self._input_numpy_dtype = None
         self._input_data_buffer = None
         self._output_data_buffer = None
         self._initialized = False
@@ -121,8 +123,15 @@ class AscendOmRunner:
 
         self._input_size = acl.mdl.get_input_size_by_index(self._model_desc, 0)
         self._output_size = acl.mdl.get_output_size_by_index(self._model_desc, 0)
-        self._output_dims = acl.mdl.get_output_dims(self._model_desc, 0)
+        output_dims = acl.mdl.get_output_dims(self._model_desc, 0)
+        if isinstance(output_dims, tuple):
+            self._output_dims, ret = output_dims
+            _check_acl(ret, "acl.mdl.get_output_dims")
+        else:
+            self._output_dims = output_dims
         self._output_dtype = acl.mdl.get_output_data_type(self._model_desc, 0)
+        self._input_dtype = acl.mdl.get_input_data_type(self._model_desc, 0)
+        self._input_numpy_dtype = _acl_dtype_to_numpy(self._input_dtype)
 
         self._input_buffer, ret = acl.rt.malloc(self._input_size, acl.MEM_MALLOC_HUGE_FIRST)
         _check_acl(ret, "acl.rt.malloc(input)")
@@ -142,8 +151,15 @@ class AscendOmRunner:
     def execute(self, input_tensor):
         if not self._initialized:
             raise RuntimeError("AscendOmRunner has not been initialized")
+        if input_tensor.dtype != self._input_numpy_dtype:
+            input_tensor = input_tensor.astype(self._input_numpy_dtype, copy=False)
+        if not input_tensor.flags["C_CONTIGUOUS"]:
+            input_tensor = np.ascontiguousarray(input_tensor)
         if input_tensor.nbytes != self._input_size:
-            raise ValueError(f"Input tensor size mismatch: {input_tensor.nbytes} vs {self._input_size}")
+            raise ValueError(
+                f"Input tensor size mismatch: {input_tensor.nbytes} vs {self._input_size}. "
+                f"Expected dtype {self._input_numpy_dtype}."
+            )
 
         input_ptr = acl.util.numpy_to_ptr(input_tensor)
         _check_acl(
